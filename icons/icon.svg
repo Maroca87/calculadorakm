@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="50%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Fondo Cuadrado con Bordes Redondeados (Squircle) -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+
+  <!-- Anillo exterior estilo Odómetro/Velocímetro -->
+  <circle cx="256" cy="256" r="190" fill="none" stroke="url(#glowGrad)" stroke-width="14" stroke-dasharray="16 10" stroke-linecap="round"/>
+
+  <!-- Contenedor Central Flotante -->
+  <circle cx="256" cy="256" r="148" fill="#0b1120" filter="url(#dropShadow)" fill-opacity="0.92"/>
+
+  <!-- Símbolo del Colón Costarricense estilizado (₡) -->
+  <!-- Letra C -->
+  <path d="M 315 175 C 290 148 245 145 210 168 C 170 195 158 250 178 295 C 196 335 242 355 285 345 C 308 340 326 325 338 305" 
+        fill="none" stroke="#f8fafc" stroke-width="32" stroke-linecap="round"/>
+
+  <!-- Barras dobles diagonales del colón costarricense -->
+  <line x1="205" y1="180" x2="315" y2="330" stroke="#38bdf8" stroke-width="22" stroke-linecap="round"/>
+  <line x1="175" y1="205" x2="285" y2="355" stroke="#10b981" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- Indicador de Ruta / Pin inferior -->
+  <circle cx="256" cy="410" r="10" fill="#38bdf8"/>
+  <circle cx="210" cy="410" r="6" fill="#64748b"/>
+  <circle cx="302" cy="410" r="6" fill="#64748b"/>
+</svg>
