@@ -1,59 +1,118 @@
 /**
- * storage.js - Manejo de almacenamiento local (localStorage) para vehículos, viajes y preferencias.
+ * storage.js - Manejo de almacenamiento local (localStorage) para vehículos, configuración y viajes.
+ * Simplificado para requerir únicamente los datos que alimentan la tabla CGR y el cálculo.
  */
 
 const KEYS = {
-  VEHICLE: 'cgr_pwa_vehicle',
+  VEHICLES: 'cgr_pwa_vehicles_list',
+  ACTIVE_VEHICLE_ID: 'cgr_pwa_active_vehicle_id',
   FUEL_CONFIG: 'cgr_pwa_fuel_config',
-  USER_PROFILE: 'cgr_pwa_user_profile',
-  TRIPS: 'cgr_pwa_trips',
-  CURRENT_DRAFT: 'cgr_pwa_current_draft'
+  CURRENT_TRIP: 'cgr_pwa_current_trip'
 };
 
-export const DEFAULT_VEHICLE = {
-  brand: 'Toyota',
-  model: 'Corolla',
-  plate: '',
-  year: 2022,
-  bodyType: 'sedan',      // 'sedan', 'rural_pickup', 'moto'
-  fuel: 'gasolina',        // 'gasolina', 'diesel', 'hibrido', 'electrico'
-  engineCc: 1800,          // cc
-  is4x4: false,            // boolean
-  currentOdometer: 65400,
-  manualCategoryOverride: '' // Si el usuario desea forzar una categoría específica
-};
+export const DEFAULT_VEHICLES = [
+  {
+    id: 'veh-1',
+    brand: 'Toyota',
+    model: 'Corolla',
+    year: 2022,
+    engineCc: 1800,
+    fuel: 'gasolina',        // 'gasolina', 'diesel', 'hibrido', 'electrico'
+    bodyType: 'sedan',      // 'sedan', 'rural_pickup', 'moto'
+    is4x4: false
+  },
+  {
+    id: 'veh-2',
+    brand: 'Toyota',
+    model: 'Hilux 4x4',
+    year: 2021,
+    engineCc: 2800,
+    fuel: 'diesel',
+    bodyType: 'rural_pickup',
+    is4x4: true
+  },
+  {
+    id: 'veh-3',
+    brand: 'BYD',
+    model: 'Yuan Plus',
+    year: 2024,
+    engineCc: 0,
+    fuel: 'electrico',
+    bodyType: 'sedan',
+    is4x4: false
+  }
+];
 
 export const DEFAULT_FUEL_CONFIG = {
-  fuelType: 'Gasolina Súper',
-  pricePerLiter: 690,      // Colones por litro
-  kmPerLiter: 13.5          // km/L
-};
-
-export const DEFAULT_USER_PROFILE = {
-  fullName: '',
-  idNumber: '',
-  department: '',
-  position: '',
-  institution: ''
+  kmPerLiter: 13.5,        // km/L
+  pricePerLiter: 690       // ₡/L
 };
 
 export const Storage = {
-  getVehicle() {
+  getVehicles() {
     try {
-      const data = localStorage.getItem(KEYS.VEHICLE);
-      return data ? { ...DEFAULT_VEHICLE, ...JSON.parse(data) } : { ...DEFAULT_VEHICLE };
+      const data = localStorage.getItem(KEYS.VEHICLES);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      this.saveVehicles(DEFAULT_VEHICLES);
+      return DEFAULT_VEHICLES;
     } catch (e) {
-      console.error('Error reading vehicle from storage', e);
-      return { ...DEFAULT_VEHICLE };
+      return DEFAULT_VEHICLES;
     }
   },
 
-  saveVehicle(vehicle) {
+  saveVehicles(vehicles) {
     try {
-      localStorage.setItem(KEYS.VEHICLE, JSON.stringify(vehicle));
+      localStorage.setItem(KEYS.VEHICLES, JSON.stringify(vehicles));
     } catch (e) {
-      console.error('Error saving vehicle to storage', e);
+      console.error('Error saving vehicles list', e);
     }
+  },
+
+  getActiveVehicleId() {
+    try {
+      return localStorage.getItem(KEYS.ACTIVE_VEHICLE_ID) || 'veh-1';
+    } catch (e) {
+      return 'veh-1';
+    }
+  },
+
+  setActiveVehicleId(id) {
+    try {
+      localStorage.setItem(KEYS.ACTIVE_VEHICLE_ID, id);
+    } catch (e) {}
+  },
+
+  getActiveVehicle() {
+    const list = this.getVehicles();
+    const activeId = this.getActiveVehicleId();
+    return list.find(v => v.id === activeId) || list[0] || DEFAULT_VEHICLES[0];
+  },
+
+  saveOrUpdateVehicle(vehicle) {
+    const list = this.getVehicles();
+    const idx = list.findIndex(v => v.id === vehicle.id);
+    if (idx >= 0) {
+      list[idx] = vehicle;
+    } else {
+      list.push(vehicle);
+    }
+    this.saveVehicles(list);
+    this.setActiveVehicleId(vehicle.id);
+  },
+
+  deleteVehicle(id) {
+    const list = this.getVehicles().filter(v => v.id !== id);
+    if (list.length === 0) {
+      list.push({ ...DEFAULT_VEHICLES[0], id: 'veh-' + Date.now() });
+    }
+    this.saveVehicles(list);
+    if (this.getActiveVehicleId() === id) {
+      this.setActiveVehicleId(list[0].id);
+    }
+    return list;
   },
 
   getFuelConfig() {
@@ -61,7 +120,6 @@ export const Storage = {
       const data = localStorage.getItem(KEYS.FUEL_CONFIG);
       return data ? { ...DEFAULT_FUEL_CONFIG, ...JSON.parse(data) } : { ...DEFAULT_FUEL_CONFIG };
     } catch (e) {
-      console.error('Error reading fuel config from storage', e);
       return { ...DEFAULT_FUEL_CONFIG };
     }
   },
@@ -69,89 +127,21 @@ export const Storage = {
   saveFuelConfig(config) {
     try {
       localStorage.setItem(KEYS.FUEL_CONFIG, JSON.stringify(config));
-    } catch (e) {
-      console.error('Error saving fuel config to storage', e);
-    }
+    } catch (e) {}
   },
 
-  getUserProfile() {
+  getCurrentTrip() {
     try {
-      const data = localStorage.getItem(KEYS.USER_PROFILE);
-      return data ? { ...DEFAULT_USER_PROFILE, ...JSON.parse(data) } : { ...DEFAULT_USER_PROFILE };
-    } catch (e) {
-      console.error('Error reading user profile from storage', e);
-      return { ...DEFAULT_USER_PROFILE };
-    }
-  },
-
-  saveUserProfile(profile) {
-    try {
-      localStorage.setItem(KEYS.USER_PROFILE, JSON.stringify(profile));
-    } catch (e) {
-      console.error('Error saving user profile to storage', e);
-    }
-  },
-
-  getTrips() {
-    try {
-      const data = localStorage.getItem(KEYS.TRIPS);
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      console.error('Error reading trips from storage', e);
-      return [];
-    }
-  },
-
-  saveTrip(trip) {
-    try {
-      const trips = this.getTrips();
-      const existingIndex = trips.findIndex(t => t.id === trip.id);
-      if (existingIndex >= 0) {
-        trips[existingIndex] = trip;
-      } else {
-        trips.unshift(trip); // El más reciente primero
-      }
-      localStorage.setItem(KEYS.TRIPS, JSON.stringify(trips));
-      return trips;
-    } catch (e) {
-      console.error('Error saving trip to storage', e);
-      return [];
-    }
-  },
-
-  deleteTrip(tripId) {
-    try {
-      const trips = this.getTrips().filter(t => t.id !== tripId);
-      localStorage.setItem(KEYS.TRIPS, JSON.stringify(trips));
-      return trips;
-    } catch (e) {
-      console.error('Error deleting trip from storage', e);
-      return [];
-    }
-  },
-
-  getCurrentDraft() {
-    try {
-      const data = localStorage.getItem(KEYS.CURRENT_DRAFT);
+      const data = localStorage.getItem(KEYS.CURRENT_TRIP);
       return data ? JSON.parse(data) : null;
     } catch (e) {
       return null;
     }
   },
 
-  saveCurrentDraft(draft) {
+  saveCurrentTrip(trip) {
     try {
-      localStorage.setItem(KEYS.CURRENT_DRAFT, JSON.stringify(draft));
-    } catch (e) {
-      console.error('Error saving draft', e);
-    }
-  },
-
-  clearCurrentDraft() {
-    try {
-      localStorage.removeItem(KEYS.CURRENT_DRAFT);
-    } catch (e) {
-      console.error('Error clearing draft', e);
-    }
+      localStorage.setItem(KEYS.CURRENT_TRIP, JSON.stringify(trip));
+    } catch (e) {}
   }
 };

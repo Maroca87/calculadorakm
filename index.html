@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Cálculo y Justificación de Kilometraje CGR - PWA</title>
+  <title>Kilometraje y Cobro - PWA</title>
   
-  <meta name="description" content="PWA Mobile First para el cálculo oficial y justificación de kilometraje de viajes laborales según la tabla de tarifas de la Contraloría General de la República (CGR Costa Rica).">
-  <meta name="theme-color" content="#0b1120">
+  <meta name="description" content="Calcula recorridos al instante y determina el monto exacto a cobrar por kilometraje con tarifas oficiales.">
+  <meta name="theme-color" content="#090d16">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Kilometraje CGR">
+  <meta name="apple-mobile-web-app-title" content="Kilometraje">
   <link rel="apple-touch-icon" href="./icons/icon.svg">
   <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
 
@@ -22,31 +22,29 @@
 </head>
 <body>
 
-  <!-- Encabezado Principal -->
+  <!-- Barra Superior Minimalista -->
   <header class="app-header">
     <div class="brand-wrapper">
       <div class="brand-icon">₡</div>
       <div>
-        <div class="brand-title">Kilometraje CGR</div>
-        <div class="brand-tag">Tarifas Oficiales CR</div>
+        <div class="brand-title">Kilometraje & Cobro</div>
+        <div class="brand-subtitle">Tarifas Oficiales CGR</div>
       </div>
     </div>
 
-    <!-- Navegación Escritorio -->
-    <nav class="desktop-nav" id="desktop-nav">
-      <button class="desktop-nav-btn active" data-tab="calculator">Ruta & Viaje</button>
-      <button class="desktop-nav-btn" data-tab="vehicle">Mi Vehículo</button>
-      <button class="desktop-nav-btn" data-tab="history">Historial</button>
-      <button class="desktop-nav-btn" data-tab="rates">Tabla CGR</button>
-    </nav>
-
     <div class="header-actions">
-      <!-- Botón Modo Oscuro / Claro -->
+      <!-- Selector Rápido de Vehículo Activo -->
+      <button class="pill-btn vehicle-pill" id="open-vehicle-modal-btn" title="Cambiar o configurar vehículo">
+        🚗 <span id="header-vehicle-name">Toyota Corolla</span>
+      </button>
+
+      <!-- Botón Tema Claro/Oscuro -->
       <button class="icon-btn" id="theme-toggle-btn" aria-label="Cambiar tema">
         <span id="theme-icon">☀️</span>
       </button>
-      <!-- Botón Instalación PWA (oculto si ya está instalada) -->
-      <button class="icon-btn" id="install-btn" style="display: none;" title="Instalar en el celular">
+
+      <!-- Botón Instalación PWA (si está disponible) -->
+      <button class="icon-btn" id="install-btn" style="display: none;" title="Instalar en celular">
         📲
       </button>
     </div>
@@ -55,237 +53,226 @@
   <!-- Contenedor Principal de la App -->
   <main class="container">
 
-    <!-- Banner de Instalación Móvil (condicional) -->
+    <!-- Banner de Instalación Rápida PWA -->
     <div class="install-banner" id="pwa-install-banner" style="display: none;">
       <div class="install-banner-text">
-        <strong>Instalar Aplicación en tu Celular</strong>
-        <span>Accede rápidamente y úsala sin conexión a internet</span>
+        <strong>📱 Instalar App en el Celular</strong>
+        <span>Úsala desde la pantalla de inicio incluso sin conexión</span>
       </div>
-      <button class="btn btn-outline" id="banner-install-btn" style="width: auto; min-height: 36px; padding: 6px 14px; font-size: 13px;">
-        Instalar
-      </button>
-    </div>
-
-    <!-- Barra de Vehículo Activo y Tarifa Actual -->
-    <div class="active-vehicle-bar" id="quick-vehicle-pill" title="Toca para ver o modificar el vehículo">
-      <div class="vehicle-bar-info">
-        <span class="vehicle-bar-name">
-          🚗 <span id="bar-vehicle-name">Toyota Corolla (2022)</span>
-        </span>
-        <span class="vehicle-bar-details" id="bar-vehicle-cat">Liviano Gasolina B (>1600cc)</span>
-      </div>
-      <div class="vehicle-bar-rate">
-        <span class="rate-badge" id="bar-vehicle-rate">₡ 221.77 / km</span>
-      </div>
+      <button class="btn-sm btn-accent" id="banner-install-btn">Instalar</button>
     </div>
 
     <!-- ====================================================================
-         VISTA 1: CALCULADORA Y RUTA DE VIAJE (Tab Principal)
+         BLOQUE 1: FLUJO PRINCIPAL DE RUTA
+         Origen → Destinos → Destino ... → Regreso Opcional
          ==================================================================== -->
-    <section class="view-panel active" id="view-calculator">
+    <section class="card route-card">
+      <div class="route-timeline">
 
-      <!-- TARJETAS KPI RESUMEN DEL VIAJE -->
-      <div class="kpi-grid">
-        <!-- KPI Destacado: Monto Total a Cobrar/Reembolsar -->
-        <div class="kpi-card kpi-featured">
-          <div class="kpi-label">
-            <span>MONTO POR KILOMETRAJE</span>
-            <span>💰 OFICIAL</span>
+        <!-- PUNTO DE ORIGEN -->
+        <div class="route-node origin-node">
+          <div class="node-bullet origin-bullet">A</div>
+          <div class="node-content">
+            <div class="node-header">
+              <label class="node-label" for="origin-input">Punto de Origen</label>
+              <button type="button" class="geo-btn" id="geo-origin-btn" title="Usar mi ubicación actual como origen">
+                📍 Mi ubicación
+              </button>
+            </div>
+            <div class="input-autocomplete-wrap">
+              <input type="text" class="text-input" id="origin-input" placeholder="Buscar lugar o escribir dirección (ej. Calle Los Mota)" value="Calle Los Mota" autocomplete="off">
+              <div class="autocomplete-dropdown" id="origin-suggestions"></div>
+            </div>
           </div>
-          <div class="kpi-value" id="kpi-mileage-amount">₡ 0.00</div>
-          <div class="kpi-subtext" id="kpi-formula-sub">Total a cobrar/reembolsar según CGR</div>
         </div>
 
-        <!-- KPI: Kilómetros Totales -->
-        <div class="kpi-card">
-          <div class="kpi-label">
-            <span>KM TOTALES</span>
-            <span>📍</span>
-          </div>
-          <div class="kpi-value" id="kpi-total-km">0.00 km</div>
-          <div class="kpi-subtext" id="kpi-legs-count">0 tramo(s)</div>
+        <!-- LISTA DINÁMICA DE DESTINOS -->
+        <div class="destinations-stack" id="destinations-container">
+          <!-- Renderizado dinámicamente con Destino 1, 2, ..., botones de subir/bajar y eliminar -->
         </div>
 
-        <!-- KPI: Tarifa por KM -->
-        <div class="kpi-card">
-          <div class="kpi-label">
-            <span>TARIFA / KM</span>
-            <span>⚖️</span>
-          </div>
-          <div class="kpi-value" id="kpi-rate-km">₡ 0.00</div>
-          <div class="kpi-subtext" id="kpi-rate-age">Antigüedad: 0 años</div>
-        </div>
-
-        <!-- KPI Gasolina: Litros Estimados -->
-        <div class="kpi-card kpi-fuel">
-          <div class="kpi-label">
-            <span>LITROS ESTIMADOS</span>
-            <span>⛽</span>
-          </div>
-          <div class="kpi-value" id="kpi-fuel-liters">0.00 L</div>
-          <div class="kpi-subtext" id="kpi-fuel-efficiency">Rend: 13.5 km/L</div>
-        </div>
-
-        <!-- KPI Gasolina: Costo Referencial -->
-        <div class="kpi-card kpi-fuel">
-          <div class="kpi-label">
-            <span>COSTO DE GASOLINA</span>
-            <span>🪙</span>
-          </div>
-          <div class="kpi-value" id="kpi-fuel-cost">₡ 0.00</div>
-          <div class="kpi-subtext">Cálculo complementario</div>
-        </div>
       </div>
 
-      <!-- Tarjeta: Datos Generales del Viaje y Origen -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">
-            <span class="card-title-icon">🚩</span> Origen y Propósito del Viaje
-          </h2>
-        </div>
-
-        <div class="form-input-row">
-          <div class="form-group">
-            <label class="form-label" for="trip-date">Fecha del Viaje</label>
-            <input type="date" class="form-input" id="trip-date">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="trip-start-odo">Odómetro Inicial (km)</label>
-            <input type="number" class="form-input" id="trip-start-odo" placeholder="Ej. 65400" step="1">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="trip-purpose">Motivo / Asunto Laboral</label>
-          <input type="text" class="form-input" id="trip-purpose" placeholder="Ej. Visita técnica a sucursal y supervisión" value="Gira de trabajo y supervisión técnica">
-        </div>
-
-        <div class="origin-block">
-          <div class="form-group">
-            <label class="form-label" for="trip-origin">
-              <strong>Punto de Partida (Origen)</strong>
-            </label>
-            <input type="text" class="form-input" id="trip-origin" value="Oficina Central / San José" placeholder="Dirección o sede de salida">
-          </div>
-        </div>
-      </div>
-
-      <!-- Tarjeta: Destinos Múltiples -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">
-            <span class="card-title-icon">🎯</span> Destinos y Tramos
-          </h2>
-          <button class="btn btn-outline" id="add-destination-btn" style="width: auto; min-height: 36px; padding: 6px 12px; font-size: 13px;">
-            + Agregar Destino
-          </button>
-        </div>
-
-        <!-- Contenedor dinámico de destinos -->
-        <div class="destination-list" id="destinations-container">
-          <!-- Se renderiza dinámicamente -->
-        </div>
-
-        <!-- Interruptor de Regreso al Origen -->
-        <div class="return-toggle-card" id="return-toggle-wrapper">
-          <div class="toggle-info">
-            <span class="toggle-title">
-              🔄 Regreso al Origen
-            </span>
-            <span class="toggle-desc" id="return-toggle-desc">
-              Suma el tramo de vuelta al punto de partida
-            </span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="return-toggle" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <!-- Campo opcional de KM de retorno personalizado si difiere -->
-        <div class="form-group" id="custom-return-row" style="margin-top: 8px;">
-          <label class="form-label" for="custom-return-km">
-            KM de Retorno (opcional - dejar vacío para cálculo automático):
-          </label>
-          <div class="form-input-addon">
-            <input type="number" class="form-input" id="custom-return-km" placeholder="Automático" step="0.1" min="0">
-            <span class="input-addon-text">km</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tarjeta: Itinerario Desglosado en Tiempo Real -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">
-            <span class="card-title-icon">🗺️</span> Desglose de Tramos
-          </h2>
-          <span class="badge-return" id="itinerary-total-badge">0.00 km</span>
-        </div>
-        <div class="itinerary-list" id="itinerary-breakdown">
-          <!-- Renderizado dinámico -->
-        </div>
-      </div>
-
-      <!-- Botones de Acción Principal -->
-      <div class="action-stack">
-        <button class="btn btn-success" id="save-trip-btn">
-          💾 Guardar Viaje en Historial
+      <!-- BOTÓN AGREGAR DESTINO -->
+      <div class="route-actions-bar">
+        <button type="button" class="btn btn-secondary add-dest-btn" id="add-destination-btn">
+          <span>➕</span> Agregar Destino
         </button>
-        <button class="btn btn-primary" id="view-voucher-btn">
-          📄 Generar Comprobante / Imprimir
+
+        <button type="button" class="btn btn-outline-clean calc-btn" id="auto-calc-distances-btn" title="Calcular distancias por carretera automáticamente">
+          <span>⚡</span> Calcular KM de Ruta
         </button>
-        <button class="btn btn-secondary" id="clear-trip-btn">
-          🔄 Limpiar / Nuevo Viaje
+      </div>
+
+      <!-- INTERRUPTOR REGRESAR AL ORIGEN -->
+      <div class="return-switch-bar">
+        <div class="return-info">
+          <span class="return-title">🔄 Regresar al origen</span>
+          <span class="return-subtitle" id="return-info-text">Agrega automáticamente el tramo final de vuelta</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="return-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+    </section>
+
+    <!-- ====================================================================
+         BLOQUE 2: DESGLOSE DE TRAMOS
+         Origen → Destino = XX.X km
+         ==================================================================== -->
+    <section class="card legs-card" id="legs-section">
+      <div class="card-title-row">
+        <span class="section-title">📍 Tramos del Recorrido</span>
+        <span class="badge-count" id="legs-count-badge">0 tramos</span>
+      </div>
+      <div class="legs-list" id="legs-list">
+        <!-- Renderizado dinámico: Origen → Destino = XX.X km -->
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         BLOQUE 3: RESULTADOS PRINCIPALES DESTACADOS
+         KM TOTALES | TARIFA | TOTAL A COBRAR
+         ==================================================================== -->
+    <section class="results-dashboard">
+      
+      <div class="results-main-card">
+        <div class="result-row-highlight">
+          <div class="result-metric">
+            <span class="result-label">KM TOTALES</span>
+            <div class="result-value" id="kpi-total-km">0.0 km</div>
+          </div>
+
+          <div class="result-metric text-right">
+            <span class="result-label">TARIFA OFICIAL</span>
+            <div class="result-rate-badge" id="kpi-rate-km">₡ 0 / km</div>
+            <span class="result-sub-cat" id="kpi-rate-cat">Vehículo Liviano Gasolina B</span>
+          </div>
+        </div>
+
+        <div class="total-charge-banner">
+          <div class="charge-label">TOTAL A COBRAR</div>
+          <div class="charge-amount" id="kpi-total-charge">₡ 0</div>
+          <div class="charge-formula" id="kpi-formula-preview">0.0 km × ₡0.00 = ₡0</div>
+        </div>
+      </div>
+
+      <!-- BOTONES DE ACCIÓN INMEDIATA -->
+      <div class="action-buttons-grid">
+        <button class="btn btn-primary" id="open-justification-btn">
+          📄 Ver y Compartir Justificación
+        </button>
+        <button class="btn btn-ghost" id="clear-route-btn">
+          🗑️ Limpiar Recorrido
         </button>
       </div>
 
     </section>
 
     <!-- ====================================================================
-         VISTA 2: GESTIÓN DE VEHÍCULO & GASOLINA
+         BLOQUE 4: GASOLINA (Cálculo secundario opcional)
          ==================================================================== -->
-    <section class="view-panel" id="view-vehicle">
-      
-      <!-- Tarjeta de Clasificación Automática CGR -->
-      <div class="classification-alert">
-        <div class="alert-header">
-          <span class="alert-category" id="v-alert-category">Vehículo Liviano Gasolina B</span>
-          <span class="alert-rate" id="v-alert-rate">₡ 221.77 / km</span>
+    <section class="card fuel-card">
+      <details class="fuel-details" id="fuel-accordion">
+        <summary class="fuel-summary">
+          <div class="fuel-summary-header">
+            <span>⛽ Gasolina (Estimación Secundaria)</span>
+            <span class="fuel-summary-cost" id="fuel-quick-cost">₡ 0</span>
+          </div>
+          <span class="details-arrow">▼</span>
+        </summary>
+
+        <div class="fuel-content">
+          <p class="fuel-note">
+            Cálculo referencial complementario. No interviene en la tarifa oficial por kilometraje ni en el total a cobrar.
+          </p>
+
+          <div class="form-grid-2">
+            <div class="field-wrap">
+              <label class="field-label" for="fuel-efficiency">Rendimiento (km/L)</label>
+              <div class="input-unit-wrap">
+                <input type="number" class="text-input" id="fuel-efficiency" value="13.5" step="0.1" min="1">
+                <span class="unit-text">km/L</span>
+              </div>
+            </div>
+
+            <div class="field-wrap">
+              <label class="field-label" for="fuel-price">Precio del Litro (₡)</label>
+              <div class="input-unit-wrap">
+                <input type="number" class="text-input" id="fuel-price" value="690" step="1" min="0">
+                <span class="unit-text">₡/L</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="fuel-metrics-grid">
+            <div class="fuel-metric-box">
+              <span class="fuel-metric-label">Litros estimados</span>
+              <strong class="fuel-metric-value" id="kpi-fuel-liters">0.0 L</strong>
+            </div>
+            <div class="fuel-metric-box">
+              <span class="fuel-metric-label">Costo estimado de gasolina</span>
+              <strong class="fuel-metric-value highlight-amber" id="kpi-fuel-cost">₡ 0</strong>
+            </div>
+          </div>
         </div>
-        <p class="alert-notes" id="v-alert-notes">
-          Clasificación determinada automáticamente según las notas oficiales de la CGR.
-        </p>
+      </details>
+    </section>
+
+  </main>
+
+  <!-- ====================================================================
+       MODAL: GESTIÓN DE VEHÍCULO (Solo datos para determinar la tarifa CGR)
+       Marca, Modelo, Año, Motor/cc, Combustible, 4x4
+       ==================================================================== -->
+  <div class="modal-backdrop" id="vehicle-modal" style="display: none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">🚗 Vehículo para Tarifa CGR</h3>
+        <button class="close-icon-btn" id="close-vehicle-modal" aria-label="Cerrar">✕</button>
       </div>
 
-      <!-- Formulario del Vehículo -->
-      <div class="card" style="margin-top: 14px;">
-        <div class="card-header">
-          <h2 class="card-title">
-            <span class="card-title-icon">🚙</span> Características del Vehículo
-          </h2>
-        </div>
-
-        <div class="form-input-row">
-          <div class="form-group">
-            <label class="form-label" for="v-brand">Marca</label>
-            <input type="text" class="form-input" id="v-brand" placeholder="Ej. Toyota, Nissan, Hyundai">
+      <div class="modal-body">
+        
+        <!-- Tarjeta de Tarifa Resultante en Vivo -->
+        <div class="rate-preview-card">
+          <div class="rate-preview-header">
+            <span class="rate-preview-category" id="modal-rate-cat">Vehículo Liviano Gasolina B</span>
+            <span class="rate-preview-val" id="modal-rate-val">₡ 221.77 / km</span>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="v-model">Modelo</label>
-            <input type="text" class="form-input" id="v-model" placeholder="Ej. Corolla, Hilux, Rav4">
+          <div class="rate-preview-note" id="modal-rate-note">
+            Tarifa determinada según la tabla oficial de la Contraloría General de la República (CGR).
           </div>
         </div>
 
-        <div class="form-input-row">
-          <div class="form-group">
-            <label class="form-label" for="v-plate">Número de Placa</label>
-            <input type="text" class="form-input" id="v-plate" placeholder="Ej. ABC-123">
+        <!-- Selector rápido de vehículos guardados -->
+        <div class="field-wrap" style="margin-top: 14px;">
+          <label class="field-label">Seleccionar Vehículo Guardado:</label>
+          <div class="quick-vehicles-list" id="quick-vehicles-list">
+            <!-- Pills dinámicos -->
           </div>
-          <div class="form-group">
-            <label class="form-label" for="v-year">Año / Modelo</label>
-            <select class="form-select" id="v-year">
+        </div>
+
+        <hr class="modal-divider" />
+
+        <!-- Formulario de características exactas para tarifa CGR -->
+        <div class="form-grid-2">
+          <div class="field-wrap">
+            <label class="field-label" for="v-brand">Marca</label>
+            <input type="text" class="text-input" id="v-brand" placeholder="Ej. Toyota, Nissan, Hyundai">
+          </div>
+          <div class="field-wrap">
+            <label class="field-label" for="v-model">Modelo</label>
+            <input type="text" class="text-input" id="v-model" placeholder="Ej. Corolla, Hilux, Rav4">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="field-wrap">
+            <label class="field-label" for="v-year">Año (Antigüedad)</label>
+            <select class="text-select" id="v-year">
               <option value="2025">2025 (0 años - Nuevo)</option>
               <option value="2024">2024 (1 año)</option>
               <option value="2023">2023 (2 años)</option>
@@ -299,20 +286,10 @@
               <option value="2015">2015 o anterior (10+ años)</option>
             </select>
           </div>
-        </div>
 
-        <div class="form-input-row">
-          <div class="form-group">
-            <label class="form-label" for="v-body">Carrocería</label>
-            <select class="form-select" id="v-body">
-              <option value="sedan">Sedán / Hatchback / Station</option>
-              <option value="rural_pickup">Rural / Familiar / Pick-up</option>
-              <option value="moto">Motocicleta</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="v-fuel">Combustible / Motor</label>
-            <select class="form-select" id="v-fuel">
+          <div class="field-wrap">
+            <label class="field-label" for="v-fuel">Combustible</label>
+            <select class="text-select" id="v-fuel">
               <option value="gasolina">Gasolina</option>
               <option value="diesel">Diesel</option>
               <option value="hibrido">Híbrido</option>
@@ -321,282 +298,81 @@
           </div>
         </div>
 
-        <div class="form-input-row">
-          <div class="form-group">
-            <label class="form-label" for="v-cc">Cilindrada (cc)</label>
-            <input type="number" class="form-input" id="v-cc" placeholder="Ej. 1600, 2000, 2500" step="50" min="0">
+        <div class="form-grid-2">
+          <div class="field-wrap">
+            <label class="field-label" for="v-cc">Cilindrada Motor (cc)</label>
+            <div class="input-unit-wrap">
+              <input type="number" class="text-input" id="v-cc" placeholder="Ej. 1800" step="50" min="0">
+              <span class="unit-text">cc</span>
+            </div>
+            <span class="field-hint">≤1600 cc: Liviano A | &gt;1600 cc: Liviano B</span>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="v-odo">Odómetro Actual (km)</label>
-            <input type="number" class="form-input" id="v-odo" placeholder="Ej. 65400" step="1">
+
+          <div class="field-wrap">
+            <label class="field-label" for="v-body">Tipo de Carrocería</label>
+            <select class="text-select" id="v-body">
+              <option value="sedan">Automóvil / Sedán / SUV Liviano</option>
+              <option value="rural_pickup">Rural / Familiar / Pick-up</option>
+              <option value="moto">Motocicleta</option>
+            </select>
           </div>
         </div>
 
-        <div class="form-group" style="margin-top: 6px;">
-          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
-            <input type="checkbox" id="v-4x4" style="width: 18px; height: 18px;">
-            <span><strong>Doble Tracción (4x4)</strong> (Requerimiento para categoría rural)</span>
+        <div class="checkbox-bar">
+          <label class="checkbox-label">
+            <input type="checkbox" id="v-4x4" class="custom-check">
+            <span><strong>Doble Tracción (4x4)</strong> (Requisito Nota 1 para categoría Rural)</span>
           </label>
         </div>
 
-        <!-- Selección manual opcional -->
-        <div class="form-group" style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-color);">
-          <label class="form-label" for="v-manual-override">
-            Anulación Manual de Categoría (Opcional)
-          </label>
-          <select class="form-select" id="v-manual-override">
-            <option value="">-- Automático según especificaciones (Recomendado) --</option>
-            <option value="RURAL_GASOLINA">Vehículo Rural Gasolina</option>
-            <option value="RURAL_DIESEL">Vehículo Rural Diesel</option>
-            <option value="LIVIANO_GASOLINA_A">Vehículo Liviano Gasolina A (≤ 1.600 cc)</option>
-            <option value="LIVIANO_GASOLINA_B">Vehículo Liviano Gasolina B (> 1.600 cc)</option>
-            <option value="LIVIANO_DIESEL">Vehículo Liviano Diesel</option>
-            <option value="MOTO_GASOLINA">Motocicleta Gasolina</option>
-            <option value="MOTO_ELECTRICA">Motocicleta Eléctrica</option>
-            <option value="HIBRIDO">Vehículo Híbrido</option>
-            <option value="ELECTRICO">Vehículo Eléctrico</option>
-          </select>
-        </div>
       </div>
 
-      <!-- Tarjeta: Configuración de Gasolina (Complementaria) -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">
-            <span class="card-title-icon">⛽</span> Configuración de Combustible
-          </h2>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="fuel-type">Tipo de Combustible</label>
-          <select class="form-select" id="fuel-type">
-            <option value="Gasolina Súper">Gasolina Súper</option>
-            <option value="Gasolina Regular">Gasolina Regular</option>
-            <option value="Diesel">Diesel</option>
-            <option value="GLP / Gas">GLP / Gas</option>
-            <option value="Electricidad (kWh)">Electricidad (kWh)</option>
-          </select>
-        </div>
-
-        <div class="form-input-row">
-          <div class="form-group">
-            <label class="form-label" for="fuel-price">Precio por Litro (₡)</label>
-            <div class="form-input-addon">
-              <input type="number" class="form-input" id="fuel-price" placeholder="Ej. 690" step="1" min="0">
-              <span class="input-addon-text">₡/L</span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="fuel-efficiency">Rendimiento (km/L)</label>
-            <div class="form-input-addon">
-              <input type="number" class="form-input" id="fuel-efficiency" placeholder="Ej. 13.5" step="0.1" min="0.1">
-              <span class="input-addon-text">km/L</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tarjeta: Datos del Funcionario (Para Comprobante) -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">
-            <span class="card-title-icon">👤</span> Datos del Funcionario Solicitante
-          </h2>
-        </div>
-
-        <div class="form-input-row">
-          <div class="form-group">
-            <label class="form-label" for="user-name">Nombre Completo</label>
-            <input type="text" class="form-input" id="user-name" placeholder="Tu nombre y apellidos">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="user-id">Cédula o N° Empleado</label>
-            <input type="text" class="form-input" id="user-id" placeholder="Ej. 1-1234-0567">
-          </div>
-        </div>
-
-        <div class="form-input-row">
-          <div class="form-group">
-            <label class="form-label" for="user-dept">Departamento / Unidad</label>
-            <input type="text" class="form-input" id="user-dept" placeholder="Ej. Operaciones, Ventas, TI">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="user-position">Puesto / Cargo</label>
-            <input type="text" class="form-input" id="user-position" placeholder="Ej. Ingeniero de Campo, Supervisor">
-          </div>
-        </div>
-      </div>
-
-      <button class="btn btn-primary" id="save-vehicle-btn">
-        💾 Guardar Cambios del Vehículo
-      </button>
-
-    </section>
-
-    <!-- ====================================================================
-         VISTA 3: HISTORIAL DE VIAJES Y EXPORTACIÓN
-         ==================================================================== -->
-    <section class="view-panel" id="view-history">
-      
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">
-            <span class="card-title-icon">📚</span> Historial de Viajes Realizados
-          </h2>
-          <span class="rate-badge" id="history-total-count">0 viajes</span>
-        </div>
-
-        <!-- Buscador y Filtro -->
-        <div class="form-group">
-          <input type="text" class="form-input" id="history-search" placeholder="🔍 Buscar por destino, motivo o fecha...">
-        </div>
-
-        <!-- Resumen Acumulado del Historial -->
-        <div class="kpi-grid" style="margin-bottom: 14px;">
-          <div class="kpi-card">
-            <div class="kpi-label">TOTAL KM HISTORIAL</div>
-            <div class="kpi-value" id="hist-sum-km" style="font-size: 18px;">0.00 km</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">TOTAL LIQUIDADO</div>
-            <div class="kpi-value" id="hist-sum-amount" style="font-size: 18px; color: #10b981;">₡ 0.00</div>
-          </div>
-        </div>
-
-        <!-- Botones de Exportación -->
-        <div class="action-row" style="margin-bottom: 14px;">
-          <button class="btn btn-outline" id="export-csv-btn">
-            📊 Exportar Excel/CSV
-          </button>
-          <button class="btn btn-outline" id="export-json-btn">
-            💾 Copia JSON
-          </button>
-        </div>
-
-        <!-- Lista de Viajes Guardados -->
-        <div id="history-list-container">
-          <!-- Renderizado dinámico -->
-        </div>
-      </div>
-
-    </section>
-
-    <!-- ====================================================================
-         VISTA 4: TABLA OFICIAL DE TARIFAS CGR COMPLETA
-         ==================================================================== -->
-    <section class="view-panel" id="view-rates">
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">
-            <span class="card-title-icon">⚖️</span> Tabla Oficial de Tarifas CGR
-          </h2>
-        </div>
-        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-          Tarifas expresadas en colones (₡) por kilómetro recorrido para arrendamiento de vehículos a funcionarios públicos (Contraloría General de la República).
-        </p>
-
-        <div class="table-responsive">
-          <table class="rates-table" id="cgr-reference-table">
-            <!-- Encabezados generados dinámicamente -->
-            <thead>
-              <tr>
-                <th rowspan="2">Antigüedad</th>
-                <th rowspan="2">Modelo</th>
-                <th colspan="2">Vehículo Rural¹</th>
-                <th colspan="3">Vehículo Liviano²</th>
-                <th colspan="2">Motocicleta</th>
-                <th rowspan="2">Vehículo Híbrido</th>
-                <th rowspan="2">Vehículo Eléctrico</th>
-              </tr>
-              <tr>
-                <th>Gasolina</th>
-                <th>Diesel</th>
-                <th>Gasolina A³<br><small>≤1600cc</small></th>
-                <th>Gasolina B⁴<br><small>&gt;1600cc</small></th>
-                <th>Diesel</th>
-                <th>Gasolina</th>
-                <th>Eléctrica</th>
-              </tr>
-            </thead>
-            <tbody id="cgr-table-body">
-              <!-- Renderizado dinámico de filas 0 a 10+ -->
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Notas Oficiales al Pie -->
-        <div style="margin-top: 16px; font-size: 11px; color: var(--text-muted); line-height: 1.5; border-top: 1px solid var(--border-color); padding-top: 12px;">
-          <p><strong>¹ Nota 1 (Rural):</strong> Quedan incluidos dentro de esta categoría, los vehículos que cumplan simultáneamente con: a) Que su carrocería sea tipo rural, familiar o 'pick up'. b) Que su motor sea de más de 2.200 cc. c) Que sea de doble tracción.</p>
-          <p style="margin-top: 4px;"><strong>² Nota 2 (Liviano):</strong> Todos los vehículos que no clasifiquen dentro de la categoría rural y que no sean motocicletas.</p>
-          <p style="margin-top: 4px;"><strong>³ Nota 3:</strong> Vehículos con motor de hasta 1.600 centímetros cúbicos.</p>
-          <p style="margin-top: 4px;"><strong>⁴ Nota 4:</strong> Vehículos con motor de más de 1.600 centímetros cúbicos.</p>
-          <p style="margin-top: 6px;">
-            <a href="https://www.cgr.go.cr/02-consultas/consulta_zon-kilo-via.html" target="_blank" rel="noopener" style="color: var(--accent-primary); text-decoration: underline;">
-              Fuente oficial: Contraloría General de la República (CGR)
-            </a>
-          </p>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ====================================================================
-       BARRA DE NAVEGACIÓN INFERIOR (MOBILE FIRST)
-       ==================================================================== -->
-  <nav class="bottom-nav" id="bottom-nav">
-    <button class="nav-item active" data-tab="calculator">
-      <span class="nav-icon">📍</span>
-      <span class="nav-label">Ruta</span>
-    </button>
-    <button class="nav-item" data-tab="vehicle">
-      <span class="nav-icon">🚙</span>
-      <span class="nav-label">Vehículo</span>
-    </button>
-    <button class="nav-item" data-tab="history">
-      <span class="nav-icon">📚</span>
-      <span class="nav-label">Historial</span>
-    </button>
-    <button class="nav-item" data-tab="rates">
-      <span class="nav-icon">⚖️</span>
-      <span class="nav-label">Tarifas</span>
-    </button>
-  </nav>
-
-  <!-- ====================================================================
-       MODAL DE COMPROBANTE OFICIAL / IMPRESIÓN
-       ==================================================================== -->
-  <div class="modal-overlay" id="voucher-modal">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h3 style="font-size: 16px; font-weight: 700; margin: 0;">Comprobante de Justificación y Liquidación</h3>
-        <button class="icon-btn" id="close-voucher-modal" aria-label="Cerrar">✕</button>
-      </div>
-      <div class="modal-body" id="print-area">
-        <!-- Contenido inyectado por report.js -->
-      </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="modal-close-btn" style="width: auto;">Cerrar</button>
-        <button class="btn btn-primary" id="modal-print-btn" style="width: auto;">
-          🖨️ Imprimir / Guardar PDF
+        <button type="button" class="btn btn-secondary" id="cancel-vehicle-btn">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="save-vehicle-btn">Guardar Vehículo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL: RESUMEN Y JUSTIFICACIÓN (Ver, Compartir e Imprimir)
+       ==================================================================== -->
+  <div class="modal-backdrop" id="justification-modal" style="display: none;">
+    <div class="modal-dialog modal-dialog-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">📄 Resumen de Justificación</h3>
+        <button class="close-icon-btn" id="close-justification-modal" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="modal-body" id="justification-container">
+        <!-- Renderizado dinámico desde report.js -->
+      </div>
+
+      <div class="modal-footer modal-footer-actions">
+        <button type="button" class="btn btn-secondary" id="close-just-btn">Cerrar</button>
+        <button type="button" class="btn btn-accent" id="copy-share-btn">
+          📤 Compartir / Copiar
+        </button>
+        <button type="button" class="btn btn-primary" id="print-btn">
+          🖨️ Imprimir / PDF
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Contenedor de Notificaciones Toast -->
-  <div class="toast-container" id="toast-container"></div>
+  <!-- Toast de Notificaciones -->
+  <div class="toast-popup" id="toast-popup"></div>
 
-  <!-- Script Principal de la Aplicación -->
-  <script src="./js/app.js"></script>
+  <!-- Lógica Principal -->
+  <script type="module" src="./js/app.js"></script>
 
-  <!-- Registro del Service Worker -->
+  <!-- Service Worker para PWA Offline -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('Service Worker registrado con éxito:', reg.scope))
-          .catch(err => console.warn('Error al registrar Service Worker:', err));
+          .then(reg => console.log('PWA Service Worker activo:', reg.scope))
+          .catch(err => console.warn('SW error:', err));
       });
     }
   </script>

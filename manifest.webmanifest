@@ -1,11 +1,11 @@
 {
-  "name": "Kilometraje CGR - Costa Rica",
-  "short_name": "Kilometraje CGR",
-  "description": "Cálculo y justificación de kilometraje para liquidación de viajes laborales con tarifas oficiales de la Contraloría General de la República.",
+  "name": "Kilometraje y Cobro - Costa Rica",
+  "short_name": "Kilometraje",
+  "description": "Calculadora rápida de recorridos y cobro por kilometraje con tarifas oficiales de la CGR Costa Rica.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0b1120",
-  "theme_color": "#0b1120",
+  "background_color": "#080c14",
+  "theme_color": "#080c14",
   "orientation": "portrait-primary",
   "lang": "es",
   "icons": [

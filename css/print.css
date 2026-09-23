@@ -1,288 +1,43 @@
 /* ==========================================================================
-   print.css - Estilos oficiales para el Comprobante de Justificación y Liquidación
+   print.css - Estilos optimizados para impresión de justificación de kilometraje
    ========================================================================== */
 
-.voucher-paper {
-  background: #ffffff;
-  color: #0f172a;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  padding: 24px;
-  border-radius: 8px;
-  line-height: 1.45;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-}
-
-.voucher-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-
-.voucher-logo-area {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.voucher-emblem {
-  width: 44px;
-  height: 44px;
-  background: #1e3a8a;
-  color: white;
-  font-weight: 800;
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-}
-
-.voucher-title {
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #0f172a;
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.voucher-subtitle {
-  font-size: 11px;
-  color: #64748b;
-  margin: 2px 0 0 0;
-  font-weight: 500;
-}
-
-.voucher-meta {
-  text-align: right;
-  font-size: 12px;
-  color: #334155;
-}
-
-.status-tag {
-  background: #e0f2fe;
-  color: #0369a1;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-  text-transform: uppercase;
-}
-
-.voucher-divider {
-  border: none;
-  border-top: 2px solid #0f172a;
-  margin: 10px 0 14px 0;
-}
-
-.voucher-grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-.voucher-box {
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 10px 12px;
-  background: #f8fafc;
-}
-
-.voucher-box-title {
-  font-size: 11px;
-  font-weight: 800;
-  color: #1e293b;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  margin: 0 0 8px 0;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 4px;
-}
-
-.voucher-mini-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-}
-
-.voucher-mini-table th {
-  text-align: left;
-  color: #64748b;
-  font-weight: 600;
-  padding: 3px 0;
-  width: 35%;
-  vertical-align: top;
-}
-
-.voucher-mini-table td {
-  padding: 3px 0;
-  color: #0f172a;
-}
-
-.highlight-cat {
-  color: #1d4ed8;
-  font-size: 12px;
-}
-
-.voucher-legs-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-  margin-bottom: 14px;
-}
-
-.voucher-legs-table th, .voucher-legs-table td {
-  border: 1px solid #cbd5e1;
-  padding: 6px 8px;
-}
-
-.voucher-legs-table th {
-  background: #f1f5f9;
-  color: #1e293b;
-  font-weight: 700;
-  text-align: left;
-}
-
-.voucher-legs-table .text-center { text-align: center; }
-.voucher-legs-table .text-right { text-align: right; }
-.font-mono { font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; }
-
-.badge-return {
-  color: #0284c7;
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.tfoot-total {
-  background: #f8fafc;
-  font-size: 12px;
-}
-
-.voucher-summary-row {
-  margin-bottom: 16px;
-}
-
-.fuel-box {
-  background: #fffbeb;
-  border-color: #fde68a;
-}
-
-.settlement-box {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-}
-
-.voucher-caption {
-  font-size: 10px;
-  color: #78350f;
-  margin: 0 0 8px 0;
-}
-
-.voucher-stat-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  margin-bottom: 4px;
-}
-
-.voucher-total-banner {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 2px dashed #86efac;
-  text-align: right;
-}
-
-.voucher-total-banner span {
-  font-size: 11px;
-  font-weight: 700;
-  color: #166534;
-  display: block;
-}
-
-.total-big-amount {
-  font-size: 22px;
-  font-weight: 900;
-  color: #15803d;
-  font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
-}
-
-.voucher-signatures {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  margin-top: 24px;
-  padding-top: 10px;
-}
-
-.signature-line {
-  text-align: center;
-}
-
-.sign-space {
-  height: 48px;
-  border-bottom: 1.5px solid #0f172a;
-  margin-bottom: 6px;
-}
-
-.sign-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: #0f172a;
-  text-transform: uppercase;
-}
-
-.sign-sub {
-  font-size: 10px;
-  color: #64748b;
-}
-
-.voucher-footer-note {
-  margin-top: 18px;
-  padding-top: 8px;
-  border-top: 1px solid #e2e8f0;
-  font-size: 9px;
-  color: #94a3b8;
-  text-align: center;
-  line-height: 1.3;
-}
-
-/* ==========================================================================
-   Media Print Specifics
-   ========================================================================== */
 @media print {
   body {
     background: #ffffff !important;
     color: #000000 !important;
+    font-size: 11pt !important;
     padding: 0 !important;
     margin: 0 !important;
   }
 
+  /* Ocultar elementos no imprimibles */
   .app-header,
-  .bottom-nav,
-  .desktop-nav,
+  .route-card,
+  .legs-card,
+  .results-dashboard,
+  .fuel-card,
   .modal-header,
   .modal-footer,
-  .container,
-  .toast-container {
+  .toast-popup,
+  .install-banner,
+  #vehicle-modal {
     display: none !important;
   }
 
-  .modal-overlay {
+  .modal-backdrop {
     position: static !important;
-    background: transparent !important;
-    display: block !important;
+    background: none !important;
     padding: 0 !important;
-    max-height: none !important;
+    display: block !important;
   }
 
-  .modal-container {
-    max-width: 100% !important;
-    max-height: none !important;
+  .modal-dialog {
     border: none !important;
     box-shadow: none !important;
-    background: transparent !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .modal-body {
@@ -290,15 +45,14 @@
     overflow: visible !important;
   }
 
-  .voucher-paper {
-    box-shadow: none !important;
-    border: none !important;
-    padding: 10mm !important;
+  .justification-paper {
     width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   @page {
+    margin: 1.5cm;
     size: letter portrait;
-    margin: 10mm;
   }
 }

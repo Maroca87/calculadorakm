@@ -1,260 +1,143 @@
 /**
- * report.js - Generación de comprobante oficial de liquidación y exportaciones (Imprimir / CSV / JSON)
+ * report.js - Resumen de justificación para ver, compartir e imprimir
  */
 
 export function formatCurrency(amount) {
-  const num = Number(amount) || 0;
-  return '₡ ' + num.toLocaleString('es-CR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+  const num = Math.round(Number(amount) || 0);
+  return '₡ ' + num.toLocaleString('es-CR');
 }
 
-export function formatNumber(num, decimals = 2) {
-  const val = Number(num) || 0;
-  return val.toLocaleString('es-CR', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
-  });
+export function formatKm(km) {
+  const val = Number(km) || 0;
+  return val.toFixed(1) + ' km';
 }
 
-export function generateVoucherHtml(tripRecord) {
-  const r = tripRecord;
-  const user = r.userSnapshot || {};
-  const v = r.vehicleSnapshot || {};
-  const dateFormatted = r.date ? new Date(r.date + 'T12:00:00').toLocaleDateString('es-CR', {
+export function generateJustificationText(tripCalc) {
+  const v = tripCalc.vehicle || {};
+  const c = tripCalc.classification || {};
+  const legsText = tripCalc.legs.map(l => `  • ${l.from} → ${l.to} = ${formatKm(l.distanceKm)}`).join('\n');
+
+  return `RESUMEN DE KILOMETRAJE Y COBRO
+Fecha: ${tripCalc.date || new Date().toISOString().split('T')[0]}
+Vehículo: ${v.brand || ''} ${v.model || ''} (${v.year || ''}) - ${c.label || ''}
+
+RECORRIDO Y TRAMOS:
+${legsText}
+
+RESULTADO:
+• KM TOTALES: ${formatKm(tripCalc.totalKm)}
+• TARIFA OFICIAL: ${formatCurrency(tripCalc.ratePerKm)} / km
+• TOTAL A COBRAR: ${formatCurrency(tripCalc.totalToCharge)}
+
+GASOLINA (Referencial):
+• Litros estimados: ${tripCalc.estimatedLiters.toFixed(1)} L (${tripCalc.kmPerLiter} km/L)
+• Costo estimado de gasolina: ${formatCurrency(tripCalc.fuelCost)} (${formatCurrency(tripCalc.pricePerLiter)}/L)
+`;
+}
+
+export function generateJustificationHtml(tripCalc) {
+  const v = tripCalc.vehicle || {};
+  const c = tripCalc.classification || {};
+  const dateFormatted = tripCalc.date ? new Date(tripCalc.date + 'T12:00:00').toLocaleDateString('es-CR', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
-  }) : 'Sin fecha';
+  }) : new Date().toLocaleDateString('es-CR');
 
-  const rowsHtml = (r.legs || []).map(leg => `
+  const rowsHtml = tripCalc.legs.map((leg, idx) => `
     <tr>
-      <td class="text-center font-bold">${leg.index}</td>
-      <td><strong>${escapeHtml(leg.from)}</strong> → <strong>${escapeHtml(leg.to)}</strong>${leg.isReturn ? ' <span class="badge-return">(Retorno)</span>' : ''}</td>
-      <td>${escapeHtml(leg.purpose || 'Traslado laboral')}</td>
-      <td class="text-right font-mono">${formatNumber(leg.distanceKm)} km</td>
+      <td style="text-align: center; font-weight: 600;">${idx + 1}</td>
+      <td><strong>${escapeHtml(leg.from)}</strong> → <strong>${escapeHtml(leg.to)}</strong>${leg.isReturn ? ' <span style="font-size:11px; background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px;">Regreso</span>' : ''}</td>
+      <td style="text-align: right; font-weight: 700; font-family: monospace;">${formatKm(leg.distanceKm)}</td>
     </tr>
   `).join('');
 
   return `
-    <div class="voucher-paper" id="voucher-content">
-      <!-- Encabezado Institucional -->
-      <div class="voucher-header">
-        <div class="voucher-logo-area">
-          <div class="voucher-emblem">₡</div>
-          <div>
-            <h1 class="voucher-title">LIQUIDACIÓN Y JUSTIFICACIÓN DE KILOMETRAJE</h1>
-            <p class="voucher-subtitle">Arrendamiento de Vehículo a Funcionarios • Tarifas Oficiales CGR</p>
-          </div>
+    <div class="justification-paper" id="justification-print-content">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px;">
+        <div>
+          <h1 style="font-size: 18px; font-weight: 800; margin: 0; color: #0f172a; text-transform: uppercase;">
+            Justificación y Cobro de Kilometraje
+          </h1>
+          <p style="font-size: 12px; color: #475569; margin: 2px 0 0 0;">
+            Tarifas oficiales según Contraloría General de la República (CGR)
+          </p>
         </div>
-        <div class="voucher-meta">
-          <div><strong>Comprobante N°:</strong> ${escapeHtml(r.id.replace('trip-', 'V-'))}</div>
-          <div><strong>Fecha de Liquidación:</strong> ${dateFormatted}</div>
-          <div><strong>Estado:</strong> <span class="status-tag">Liquidado / Aprobación</span></div>
+        <div style="text-align: right; font-size: 12px; color: #334155;">
+          <div><strong>Fecha:</strong> ${dateFormatted}</div>
         </div>
       </div>
 
-      <hr class="voucher-divider" />
-
-      <!-- Datos del Funcionario y Vehículo en 2 Columnas -->
-      <div class="voucher-grid-2">
-        <div class="voucher-box">
-          <h2 class="voucher-box-title">1. DATOS DEL FUNCIONARIO SOLICITANTE</h2>
-          <table class="voucher-mini-table">
-            <tr>
-              <th>Nombre Completo:</th>
-              <td>${escapeHtml(user.fullName || 'No especificado')}</td>
-            </tr>
-            <tr>
-              <th>Cédula / Identificación:</th>
-              <td>${escapeHtml(user.idNumber || 'No especificada')}</td>
-            </tr>
-            <tr>
-              <th>Departamento / Unidad:</th>
-              <td>${escapeHtml(user.department || 'Operaciones / Giras')}</td>
-            </tr>
-            <tr>
-              <th>Motivo / Asunto Gira:</th>
-              <td><strong>${escapeHtml(r.purpose || 'Gira de trabajo oficial')}</strong></td>
-            </tr>
-          </table>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+        <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Vehículo Utilizado</div>
+        <div style="font-size: 15px; font-weight: 700; color: #0f172a;">
+          🚗 ${escapeHtml(v.brand || '')} ${escapeHtml(v.model || '')} (${v.year || ''})
         </div>
-
-        <div class="voucher-box">
-          <h2 class="voucher-box-title">2. DATOS DEL VEHÍCULO Y CATEGORÍA CGR</h2>
-          <table class="voucher-mini-table">
-            <tr>
-              <th>Vehículo:</th>
-              <td><strong>${escapeHtml(v.brand || '')} ${escapeHtml(v.model || '')} (${v.year || ''})</strong></td>
-            </tr>
-            <tr>
-              <th>Placa / Odómetro:</th>
-              <td>Placa: <strong>${escapeHtml(v.plate || 'N/A')}</strong> | Odo: ${formatNumber(r.startOdometer, 0)} - ${formatNumber(r.endOdometer, 0)} km</td>
-            </tr>
-            <tr>
-              <th>Categoría Oficial:</th>
-              <td><strong class="highlight-cat">${escapeHtml(v.categoryLabel || 'Vehículo')}</strong></td>
-            </tr>
-            <tr>
-              <th>Fundamento CGR:</th>
-              <td class="text-xs text-muted">${escapeHtml(v.categoryNotes || 'Tabla oficial CGR')}</td>
-            </tr>
-          </table>
+        <div style="font-size: 12px; color: #334155; margin-top: 2px;">
+          Categoría: <strong>${escapeHtml(c.label || 'Liviano')}</strong> | Motor: ${v.engineCc ? v.engineCc + ' cc' : 'N/A'} | Combustible: ${v.fuel || 'Gasolina'}
         </div>
       </div>
 
-      <!-- Tabla Detallada de Tramos -->
-      <div class="voucher-section">
-        <h2 class="voucher-box-title">3. ITINERARIO Y TRAMOS RECORRIDOS</h2>
-        <table class="voucher-legs-table">
+      <div style="margin-bottom: 16px;">
+        <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 6px; text-transform: uppercase;">
+          Desglose de Recorrido por Tramos
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
           <thead>
-            <tr>
-              <th style="width: 40px;" class="text-center">#</th>
-              <th>Tramo (Origen → Destino)</th>
-              <th>Propósito de la Visita</th>
-              <th style="width: 120px;" class="text-right">Distancia</th>
+            <tr style="background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
+              <th style="padding: 8px 6px; text-align: center; width: 35px;">#</th>
+              <th style="padding: 8px; text-align: left;">Tramo</th>
+              <th style="padding: 8px 6px; text-align: right; width: 100px;">Distancia</th>
             </tr>
           </thead>
           <tbody>
             ${rowsHtml}
           </tbody>
           <tfoot>
-            <tr class="tfoot-total">
-              <td colspan="3" class="text-right font-bold">TOTAL DE KILÓMETROS RECORRIDOS:</td>
-              <td class="text-right font-mono font-bold">${formatNumber(r.totalKm)} km</td>
+            <tr style="border-top: 2px solid #0f172a; font-weight: 800; font-size: 14px; background: #fafafa;">
+              <td colspan="2" style="padding: 10px 8px; text-align: right;">KM TOTALES:</td>
+              <td style="padding: 10px 8px; text-align: right; font-family: monospace; color: #0284c7;">
+                ${formatKm(tripCalc.totalKm)}
+              </td>
             </tr>
           </tfoot>
         </table>
       </div>
 
-      <!-- Resumen Financiero y Liquidación -->
-      <div class="voucher-grid-2 voucher-summary-row">
-        <!-- Gasolina Referencial -->
-        <div class="voucher-box fuel-box">
-          <h2 class="voucher-box-title">4. CÁLCULO COMPLEMENTARIO DE GASOLINA</h2>
-          <p class="voucher-caption">Información referencial estimada de consumo no deducible de la tarifa por km.</p>
-          <div class="voucher-stat-row">
-            <span>Litros estimados de combustible:</span>
-            <strong class="font-mono">${formatNumber(r.estimatedLiters)} L</strong>
-          </div>
-          <div class="voucher-stat-row">
-            <span>Costo aproximado de combustible:</span>
-            <strong class="font-mono">${formatCurrency(r.fuelCost)}</strong>
+      <!-- Resumen Principal Destacado -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; text-align: center;">
+          <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Tarifa Oficial CGR</div>
+          <div style="font-size: 18px; font-weight: 800; color: #0f172a; margin-top: 4px;">
+            ${formatCurrency(tripCalc.ratePerKm)} / km
           </div>
         </div>
 
-        <!-- Monto Oficial a Liquidar -->
-        <div class="voucher-box settlement-box">
-          <h2 class="voucher-box-title">5. RESUMEN DE LIQUIDACIÓN POR KILOMETRAJE</h2>
-          <div class="voucher-stat-row">
-            <span>Tarifa oficial autorizada (CGR):</span>
-            <strong class="font-mono">${formatCurrency(r.ratePerKm)} / km</strong>
-          </div>
-          <div class="voucher-stat-row">
-            <span>Total de kilómetros computados:</span>
-            <strong class="font-mono">${formatNumber(r.totalKm)} km</strong>
-          </div>
-          <div class="voucher-total-banner">
-            <span>MONTO TOTAL A LIQUIDAR / REEMBOLSAR:</span>
-            <div class="total-big-amount">${formatCurrency(r.mileageAmount)}</div>
+        <div style="background: #ecfdf5; border: 2px solid #10b981; border-radius: 8px; padding: 12px; text-align: center;">
+          <div style="font-size: 11px; font-weight: 800; color: #047857; text-transform: uppercase;">TOTAL A COBRAR</div>
+          <div style="font-size: 22px; font-weight: 900; color: #047857; margin-top: 4px;">
+            ${formatCurrency(tripCalc.totalToCharge)}
           </div>
         </div>
       </div>
 
-      ${r.notes ? `
-        <div class="voucher-box" style="margin-top: 12px;">
-          <h2 class="voucher-box-title">OBSERVACIONES O JUSTIFICACIÓN ADICIONAL</h2>
-          <p style="font-size: 13px; color: #475569; margin: 0;">${escapeHtml(r.notes)}</p>
-        </div>
-      ` : ''}
-
-      <!-- Firmas de Aprobación -->
-      <div class="voucher-signatures">
-        <div class="signature-line">
-          <div class="sign-space"></div>
-          <div class="sign-label">Firma del Funcionario Solicitante</div>
-          <div class="sign-sub">${escapeHtml(user.fullName || 'Funcionario')}</div>
-          <div class="sign-sub">Cédula: ${escapeHtml(user.idNumber || '_________________')}</div>
-        </div>
-
-        <div class="signature-line">
-          <div class="sign-space"></div>
-          <div class="sign-label">Firma y Sello de Jefatura Inmediata</div>
-          <div class="sign-sub">Aprobador Autorizado</div>
-          <div class="sign-sub">Fecha de Aprobación: _____ / _____ / 202___</div>
-        </div>
+      <!-- Estimación Secundaria de Gasolina -->
+      <div style="background: #fffbeb; border: 1px dashed #f59e0b; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #92400e; margin-bottom: 24px;">
+        <strong>⛽ Estimación de Gasolina (Secundaria):</strong> ${tripCalc.estimatedLiters.toFixed(1)} L estimados (${tripCalc.kmPerLiter} km/L) equivalentes a aprox. <strong>${formatCurrency(tripCalc.fuelCost)}</strong>.
       </div>
 
-      <div class="voucher-footer-note">
-        Documento generado automáticamente para justificación laboral de acuerdo a la tabla de tarifas de arrendamiento de vehículos a funcionarios publicada por la Contraloría General de la República de Costa Rica.
+      <!-- Espacio para firmas -->
+      <div style="display: flex; justify-content: space-around; margin-top: 36px; padding-top: 10px;">
+        <div style="width: 200px; text-align: center; border-top: 1px solid #94a3b8; padding-top: 6px; font-size: 11px; color: #475569;">
+          Firma de quien realizó el viaje
+        </div>
+        <div style="width: 200px; text-align: center; border-top: 1px solid #94a3b8; padding-top: 6px; font-size: 11px; color: #475569;">
+          Firma y Visto Bueno
+        </div>
       </div>
     </div>
   `;
-}
-
-export function printVoucher(tripRecord) {
-  const container = document.getElementById('print-area');
-  if (!container) return;
-  container.innerHTML = generateVoucherHtml(tripRecord);
-  window.print();
-}
-
-export function exportTripsToCsv(trips) {
-  if (!trips || trips.length === 0) {
-    alert('No hay viajes en el historial para exportar.');
-    return;
-  }
-
-  const headers = [
-    'ID', 'Fecha', 'Propósito', 'Origen', 'Destinos', 'Total KM',
-    'Vehículo', 'Categoría CGR', 'Tarifa por KM (CRC)', 'Total Kilometraje (CRC)',
-    'Litros Gasolina', 'Costo Gasolina (CRC)'
-  ];
-
-  const rows = trips.map(t => {
-    const destStr = (t.destinations || []).map(d => d.name).join(' | ');
-    const vStr = t.vehicleSnapshot ? `${t.vehicleSnapshot.brand} ${t.vehicleSnapshot.model} ${t.vehicleSnapshot.year}` : '';
-    const catStr = t.vehicleSnapshot ? t.vehicleSnapshot.categoryLabel : '';
-    return [
-      t.id,
-      t.date,
-      `"${(t.purpose || '').replace(/"/g, '""')}"`,
-      `"${(t.origin || '').replace(/"/g, '""')}"`,
-      `"${destStr.replace(/"/g, '""')}"`,
-      t.totalKm,
-      `"${vStr.replace(/"/g, '""')}"`,
-      `"${catStr.replace(/"/g, '""')}"`,
-      t.ratePerKm,
-      t.mileageAmount,
-      t.estimatedLiters,
-      t.fuelCost
-    ].join(',');
-  });
-
-  const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `viajes-kilometraje-${new Date().toISOString().split('T')[0]}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-export function exportTripsToJson(trips) {
-  const blob = new Blob([JSON.stringify(trips, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `viajes-backup-${new Date().toISOString().split('T')[0]}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 
 function escapeHtml(str) {

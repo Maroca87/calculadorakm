@@ -1,33 +1,63 @@
 /**
- * vehicle.js - Lógica y estado del vehículo y configuración de combustible
+ * vehicle.js - Manejo simplificado del vehículo activo según criterios de la tabla de tarifas CGR
+ * (Marca, Modelo, Año, Motor/Cilindrada, Tipo de Combustible, 4x4/Carrocería para Nota 1 CGR)
  */
 
-import { classifyVehicle, getRate, calculateAge, CATEGORY_LABELS, CATEGORIES } from './rates.js';
-import { Storage } from './storage.js';
+import { classifyVehicle, BASE_YEAR } from './rates.js';
+import { Storage, DEFAULT_VEHICLES } from './storage.js';
 
 export class VehicleManager {
   constructor(onChangeCallback) {
-    this.vehicle = Storage.getVehicle();
-    this.fuelConfig = Storage.getFuelConfig();
-    this.userProfile = Storage.getUserProfile();
     this.onChange = onChangeCallback || (() => {});
+    this.vehicles = Storage.getVehicles();
+    this.activeVehicle = Storage.getActiveVehicle();
+    this.fuelConfig = Storage.getFuelConfig();
   }
 
-  getVehicle() {
-    return this.vehicle;
+  getVehicles() {
+    return this.vehicles;
+  }
+
+  getActiveVehicle() {
+    return this.activeVehicle;
   }
 
   getFuelConfig() {
     return this.fuelConfig;
   }
 
-  getUserProfile() {
-    return this.userProfile;
+  setActiveVehicle(vehicleId) {
+    const found = this.vehicles.find(v => v.id === vehicleId);
+    if (found) {
+      this.activeVehicle = found;
+      Storage.setActiveVehicleId(vehicleId);
+      this.onChange();
+    }
   }
 
-  updateVehicle(partial) {
-    this.vehicle = { ...this.vehicle, ...partial };
-    Storage.saveVehicle(this.vehicle);
+  saveVehicle(vehicleData) {
+    const id = vehicleData.id || ('veh-' + Date.now());
+    const vehicle = {
+      id,
+      brand: vehicleData.brand || 'Vehículo',
+      model: vehicleData.model || '',
+      year: parseInt(vehicleData.year, 10) || BASE_YEAR,
+      engineCc: parseFloat(vehicleData.engineCc) || 0,
+      fuel: vehicleData.fuel || 'gasolina',
+      bodyType: vehicleData.bodyType || 'sedan',
+      is4x4: Boolean(vehicleData.is4x4)
+    };
+
+    Storage.saveOrUpdateVehicle(vehicle);
+    this.vehicles = Storage.getVehicles();
+    this.activeVehicle = vehicle;
+    this.onChange();
+    return vehicle;
+  }
+
+  deleteVehicle(id) {
+    this.vehicles = Storage.deleteVehicle(id);
+    this.activeVehicle = Storage.getActiveVehicle();
     this.onChange();
   }
 
@@ -37,36 +67,10 @@ export class VehicleManager {
     this.onChange();
   }
 
-  updateUserProfile(partial) {
-    this.userProfile = { ...this.userProfile, ...partial };
-    Storage.saveUserProfile(this.userProfile);
-    this.onChange();
-  }
-
   /**
-   * Obtiene la clasificación y tarifa activa para el vehículo guardado
+   * Obtiene la clasificación CGR y tarifa del vehículo activo
    */
   getActiveClassification() {
-    const classification = classifyVehicle(this.vehicle);
-
-    // Si el usuario configuró una categoría manual explícita
-    if (this.vehicle.manualCategoryOverride && CATEGORIES[this.vehicle.manualCategoryOverride]) {
-      const manualCat = this.vehicle.manualCategoryOverride;
-      const age = calculateAge(this.vehicle.year);
-      const manualRate = getRate(manualCat, age);
-      return {
-        category: manualCat,
-        label: CATEGORY_LABELS[manualCat] + ' (Selección manual)',
-        age,
-        rate: manualRate,
-        notes: `Tarifa asignada manualmente por el usuario. Antigüedad: ${age} años.`,
-        isManual: true
-      };
-    }
-
-    return {
-      ...classification,
-      isManual: false
-    };
+    return classifyVehicle(this.activeVehicle);
   }
 }

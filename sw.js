@@ -2,7 +2,7 @@
  * sw.js - Service Worker para funcionamiento 100% offline y PWA en GitHub Pages
  */
 
-const CACHE_NAME = 'kilometraje-cgr-v1.0.1';
+const CACHE_NAME = 'kilometraje-pwa-v2.0.0';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -15,6 +15,7 @@ const ASSETS_TO_CACHE = [
   './js/vehicle.js',
   './js/trip.js',
   './js/storage.js',
+  './js/places.js',
   './js/report.js',
   './icons/icon.svg'
 ];
@@ -44,6 +45,9 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Solo interceptar peticiones GET
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
@@ -53,8 +57,7 @@ self.addEventListener('fetch', (event) => {
         if (
           !networkResponse ||
           networkResponse.status !== 200 ||
-          networkResponse.type !== 'basic' ||
-          event.request.method !== 'GET'
+          networkResponse.type !== 'basic'
         ) {
           return networkResponse;
         }

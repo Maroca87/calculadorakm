@@ -1,5 +1,5 @@
 /**
- * trip.js - Lógica de cálculo de tramos, kilometraje, gasolina y viaje
+ * trip.js - Lógica de cálculo de tramos, kilometraje oficial y estimación complementaria de gasolina.
  */
 
 export class TripManager {
@@ -7,49 +7,37 @@ export class TripManager {
     this.vehicleManager = vehicleManager;
     this.onChange = onChangeCallback || (() => {});
 
-    this.origin = 'Oficina Central / San José';
+    this.origin = {
+      name: 'Calle Los Mota',
+      lat: 9.9250,
+      lon: -84.0950
+    };
+
     this.destinations = [
-      { id: 'dest-1', name: 'Sucursal Alajuela', distanceKm: 21.5, purpose: 'Reunión de coordinación' }
+      { id: 'dest-1', name: 'Tecnova Soluciones', distanceKm: 4.8, lat: 9.9405, lon: -84.0920 },
+      { id: 'dest-2', name: 'Alajuela', distanceKm: 18.5, lat: 10.0163, lon: -84.2116 }
     ];
-    this.returnToOrigin = true;
-    this.customReturnKm = null; // null significa calcular automáticamente
-    this.purpose = 'Gira de trabajo y supervisión técnica';
+
+    this.returnToOrigin = false;
     this.date = new Date().toISOString().split('T')[0];
-    this.notes = '';
-    this.startOdometer = null;
   }
 
-  setOrigin(origin) {
-    this.origin = origin;
+  setOrigin(name, lat = null, lon = null) {
+    this.origin = {
+      name: (name || '').trim(),
+      lat: lat !== null ? lat : (this.origin ? this.origin.lat : null),
+      lon: lon !== null ? lon : (this.origin ? this.origin.lon : null)
+    };
     this.notify();
   }
 
-  setPurpose(purpose) {
-    this.purpose = purpose;
-    this.notify();
-  }
-
-  setDate(date) {
-    this.date = date;
-    this.notify();
-  }
-
-  setNotes(notes) {
-    this.notes = notes;
-    this.notify();
-  }
-
-  setStartOdometer(val) {
-    this.startOdometer = val ? parseFloat(val) : null;
-    this.notify();
-  }
-
-  addDestination(name = '', distanceKm = 0, purpose = '') {
+  addDestination(name = '', distanceKm = 0, lat = null, lon = null) {
     const newDest = {
       id: 'dest-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       name: name || `Destino ${this.destinations.length + 1}`,
-      distanceKm: parseFloat(distanceKm) || 0,
-      purpose: purpose || ''
+      distanceKm: Math.max(0, parseFloat(distanceKm) || 0),
+      lat,
+      lon
     };
     this.destinations.push(newDest);
     this.notify();
@@ -69,12 +57,12 @@ export class TripManager {
 
   removeDestination(id) {
     if (this.destinations.length <= 1) {
-      // Dejar al menos uno vacío en lugar de 0 para conveniencia de UI
       this.destinations = [{
         id: 'dest-' + Date.now(),
         name: '',
         distanceKm: 0,
-        purpose: ''
+        lat: null,
+        lon: null
       }];
     } else {
       this.destinations = this.destinations.filter(d => d.id !== id);
@@ -99,47 +87,37 @@ export class TripManager {
     this.notify();
   }
 
-  setCustomReturnKm(km) {
-    this.customReturnKm = km === null || km === '' ? null : Math.max(0, parseFloat(km) || 0);
+  setDate(date) {
+    this.date = date;
     this.notify();
   }
 
   /**
-   * Calcula la distancia estimada de regreso al origen.
-   * Si hay 1 destino, es igual al tramo hacia ese destino.
-   * Si hay varios destinos, por defecto toma la suma o la distancia directa estimada.
+   * Calcula la distancia estimada de regreso al origen
    */
   getReturnDistanceKm() {
     if (!this.returnToOrigin) return 0;
-    if (this.customReturnKm !== null) return this.customReturnKm;
-
     if (this.destinations.length === 1) {
       return this.destinations[0].distanceKm || 0;
     }
-
-    // Si hay múltiples destinos y no se ha especificado un KM especial de regreso,
-    // se toma la distancia desde el último destino de vuelta al origen
-    // (o el promedio de los tramos o la suma si es ruta lineal)
-    // Para conveniencia inicial, sumamos los tramos intermedios si regresan por la misma vía,
-    // o el último tramo si es circular. Mostramos el campo editable en UI para mayor precisión.
+    // Si hay múltiples destinos, suma de ida por default
     const outwardSum = this.destinations.reduce((acc, d) => acc + (d.distanceKm || 0), 0);
-    return Math.round(outwardSum * 100) / 100;
+    return Math.round(outwardSum * 10) / 10;
   }
 
   /**
-   * Genera la lista completa de tramos (legs) incluyendo el regreso si aplica
+   * Desglose ordenado de tramos: Origen -> Destino 1 -> Destino 2 -> ... -> (Origen)
    */
   getLegs() {
     const legs = [];
-    let previousPoint = this.origin || 'Origen';
+    let previousPoint = this.origin.name || 'Origen';
 
     this.destinations.forEach((dest, index) => {
       legs.push({
         index: index + 1,
         from: previousPoint,
         to: dest.name || `Destino ${index + 1}`,
-        distanceKm: Math.round((dest.distanceKm || 0) * 100) / 100,
-        purpose: dest.purpose || '',
+        distanceKm: Math.round((dest.distanceKm || 0) * 10) / 10,
         isReturn: false
       });
       previousPoint = dest.name || `Destino ${index + 1}`;
@@ -150,9 +128,8 @@ export class TripManager {
       legs.push({
         index: legs.length + 1,
         from: previousPoint,
-        to: this.origin || 'Origen',
-        distanceKm: Math.round(returnKm * 100) / 100,
-        purpose: 'Retorno a punto de origen',
+        to: this.origin.name || 'Origen',
+        distanceKm: Math.round(returnKm * 10) / 10,
         isReturn: true
       });
     }
@@ -161,119 +138,70 @@ export class TripManager {
   }
 
   /**
-   * Realiza todos los cálculos del viaje
+   * Cálculo general del recorrido:
+   * KM TOTALES x TARIFA = TOTAL A COBRAR
+   * Gasolina secundaria
    */
   calculate() {
     const legs = this.getLegs();
     const totalKm = legs.reduce((acc, leg) => acc + leg.distanceKm, 0);
-    const roundedTotalKm = Math.round(totalKm * 100) / 100;
+    const roundedTotalKm = Math.round(totalKm * 10) / 10;
 
-    const vehicleClassification = this.vehicleManager.getActiveClassification();
-    const ratePerKm = vehicleClassification.rate || 0;
+    const classification = this.vehicleManager.getActiveClassification();
+    const ratePerKm = classification.rate || 0;
 
-    // 1. Monto oficial por kilometraje
-    const mileageAmount = Math.round(roundedTotalKm * ratePerKm * 100) / 100;
+    // Fórmula principal: KM TOTALES x TARIFA = TOTAL A COBRAR
+    const totalToCharge = Math.round(roundedTotalKm * ratePerKm);
 
-    // 2. Gasolina como cálculo complementario separado
+    // Gasolina complementaria (secundaria)
     const fuelConfig = this.vehicleManager.getFuelConfig();
-    const kmPerLiter = fuelConfig.kmPerLiter > 0 ? fuelConfig.kmPerLiter : 12;
+    const kmPerLiter = fuelConfig.kmPerLiter > 0 ? fuelConfig.kmPerLiter : 13.5;
     const pricePerLiter = fuelConfig.pricePerLiter >= 0 ? fuelConfig.pricePerLiter : 690;
 
-    const estimatedLiters = kmPerLiter > 0 ? Math.round((roundedTotalKm / kmPerLiter) * 100) / 100 : 0;
-    const fuelCost = Math.round(estimatedLiters * pricePerLiter * 100) / 100;
-
-    // Odómetros
-    const vehicle = this.vehicleManager.getVehicle();
-    const startOdo = this.startOdometer !== null ? this.startOdometer : (vehicle.currentOdometer || 0);
-    const endOdo = startOdo + roundedTotalKm;
+    const estimatedLiters = kmPerLiter > 0 ? Math.round((roundedTotalKm / kmPerLiter) * 10) / 10 : 0;
+    const fuelCost = Math.round(estimatedLiters * pricePerLiter);
 
     return {
       totalKm: roundedTotalKm,
       legs,
       ratePerKm,
-      mileageAmount,
+      totalToCharge,
       estimatedLiters,
       fuelCost,
       kmPerLiter,
       pricePerLiter,
-      fuelType: fuelConfig.fuelType,
-      vehicleClassification,
-      startOdometer: startOdo,
-      endOdometer: endOdo
+      vehicle: this.vehicleManager.getActiveVehicle(),
+      classification
     };
   }
 
-  /**
-   * Crea un objeto de viaje completo para guardar en historial
-   */
-  createTripRecord() {
-    const calc = this.calculate();
-    const vehicle = this.vehicleManager.getVehicle();
-    const userProfile = this.vehicleManager.getUserProfile();
-
+  createTripState() {
     return {
-      id: 'trip-' + Date.now(),
-      createdAt: new Date().toISOString(),
       date: this.date,
-      purpose: this.purpose,
-      notes: this.notes,
       origin: this.origin,
       destinations: JSON.parse(JSON.stringify(this.destinations)),
-      returnToOrigin: this.returnToOrigin,
-      customReturnKm: this.customReturnKm,
-      legs: calc.legs,
-      totalKm: calc.totalKm,
-      ratePerKm: calc.ratePerKm,
-      mileageAmount: calc.mileageAmount,
-      estimatedLiters: calc.estimatedLiters,
-      fuelCost: calc.fuelCost,
-      startOdometer: calc.startOdometer,
-      endOdometer: calc.endOdometer,
-      vehicleSnapshot: {
-        brand: vehicle.brand,
-        model: vehicle.model,
-        year: vehicle.year,
-        plate: vehicle.plate,
-        fuel: vehicle.fuel,
-        engineCc: vehicle.engineCc,
-        is4x4: vehicle.is4x4,
-        bodyType: vehicle.bodyType,
-        category: calc.vehicleClassification.category,
-        categoryLabel: calc.vehicleClassification.label,
-        categoryNotes: calc.vehicleClassification.notes
-      },
-      userSnapshot: { ...userProfile }
+      returnToOrigin: this.returnToOrigin
     };
   }
 
-  /**
-   * Carga los datos de un viaje previamente guardado
-   */
-  loadFromRecord(record) {
-    this.origin = record.origin || 'Oficina Central';
-    this.destinations = record.destinations && record.destinations.length > 0 
-      ? JSON.parse(JSON.stringify(record.destinations))
-      : [{ id: 'dest-1', name: 'Destino', distanceKm: 10, purpose: '' }];
-    this.returnToOrigin = Boolean(record.returnToOrigin);
-    this.customReturnKm = record.customReturnKm !== undefined ? record.customReturnKm : null;
-    this.purpose = record.purpose || '';
-    this.date = record.date || new Date().toISOString().split('T')[0];
-    this.notes = record.notes || '';
-    this.startOdometer = record.startOdometer || null;
+  loadTripState(state) {
+    if (!state) return;
+    if (state.origin) this.origin = typeof state.origin === 'string' ? { name: state.origin } : state.origin;
+    if (state.destinations && state.destinations.length > 0) {
+      this.destinations = JSON.parse(JSON.stringify(state.destinations));
+    }
+    if (state.returnToOrigin !== undefined) this.returnToOrigin = Boolean(state.returnToOrigin);
+    if (state.date) this.date = state.date;
     this.notify();
   }
 
   reset() {
-    this.origin = 'Oficina Central';
+    this.origin = { name: 'Calle Los Mota', lat: null, lon: null };
     this.destinations = [
-      { id: 'dest-' + Date.now(), name: '', distanceKm: 0, purpose: '' }
+      { id: 'dest-' + Date.now(), name: 'Tecnova Soluciones', distanceKm: 0, lat: null, lon: null }
     ];
-    this.returnToOrigin = true;
-    this.customReturnKm = null;
-    this.purpose = '';
+    this.returnToOrigin = false;
     this.date = new Date().toISOString().split('T')[0];
-    this.notes = '';
-    this.startOdometer = null;
     this.notify();
   }
 
